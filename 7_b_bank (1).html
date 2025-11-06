@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>7B Bank</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 20px; }
+    h1 { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    button { padding: 5px 10px; margin: 3px; cursor: pointer; }
+    .controls { text-align: center; margin-top: 15px; }
+    #teacherControls { display: none; background: #fff; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+  <h1>7B Bank</h1>
+
+  <div class="controls">
+    Signed in as: <span id="signedInAs">None</span>
+    <select id="userSelect"></select>
+    <button id="loginTeacher">Teacher Login</button>
+    <button id="logoutTeacher" style="display:none;">Logout Teacher</button>
+  </div>
+
+  <div id="teacherControls">
+    <h3>Teacher Controls</h3>
+    <input type="text" id="newStudentName" placeholder="Student name">
+    <input type="password" id="newStudentPassword" placeholder="Set student password">
+    <button id="addStudent">Add Student</button>
+    <button id="resetData">Reset Data</button>
+  </div>
+
+  <table id="bankTable">
+    <thead>
+      <tr>
+        <th>Student</th>
+        <th>Balance ($)</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const TEACHER_PASSWORD = "123";
+    let data = JSON.parse(localStorage.getItem("bankData")) || { students: [] };
+
+    let currentUser = null;
+    let teacherMode = false;
+
+    const tableBody = document.querySelector("#bankTable tbody");
+    const userSelect = document.getElementById("userSelect");
+    const teacherControls = document.getElementById("teacherControls");
+    const signedInAs = document.getElementById("signedInAs");
+
+    function saveData() {
+      localStorage.setItem("bankData", JSON.stringify(data));
+    }
+
+    function updateSignedInDisplay() {
+      signedInAs.textContent = teacherMode ? 'Teacher' : (currentUser || 'None');
+    }
+
+    function renderUsers() {
+      userSelect.innerHTML = `<option value="">-- Select User --</option>`;
+      data.students.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s.name;
+        opt.textContent = s.name;
+        userSelect.appendChild(opt);
+      });
+    }
+
+    function renderTable() {
+      tableBody.innerHTML = "";
+      data.students.forEach((s, i) => {
+        let actions = '';
+        if (teacherMode) {
+          actions = `<button onclick="depositMoney(${i})">Deposit</button><button onclick="withdrawMoney(${i})">Withdraw</button><button onclick="deleteStudent(${i})">Delete</button><button onclick="viewPassword(${i})">View/Edit Password</button>`;
+        } else if (currentUser) {
+          actions = `<button onclick="transferMoney(${i})">Transfer</button>`;
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${s.name}</td>
+          <td>${s.balance}</td>
+          <td>${actions}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function transferMoney(index) {
+      if (!currentUser) return alert("Select your account first.");
+      const from = data.students.find(s => s.name === currentUser);
+      const to = data.students[index];
+      if (!from || !to) return alert('Account not found.');
+      if (from.name === to.name) return alert("You can't transfer to yourself.");
+      const confirmPw = prompt(`Enter your password to confirm transfer:`);
+      if (confirmPw !== from.password) return alert("Incorrect password.");
+      const amount = parseFloat(prompt(`Amount to send to ${to.name}:`));
+      if (isNaN(amount) || amount <= 0) return;
+      if (from.balance < amount) return alert("Not enough funds.");
+      from.balance -= amount;
+      to.balance += amount;
+      saveData();
+      renderTable();
+    }
+
+    function depositMoney(index) {
+      if (!teacherMode) return;
+      const amount = parseFloat(prompt("Deposit amount:"));
+      if (isNaN(amount) || amount <= 0) return;
+      data.students[index].balance += amount;
+      saveData();
+      renderTable();
+    }
+
+    function withdrawMoney(index) {
+      if (!teacherMode) return;
+      const amount = parseFloat(prompt("Withdraw amount:"));
+      if (isNaN(amount) || amount <= 0) return;
+      data.students[index].balance -= amount;
+      if (data.students[index].balance < 0) data.students[index].balance = 0;
+      saveData();
+      renderTable();
+    }
+
+    function deleteStudent(index) {
+      if (!teacherMode) return;
+      const name = data.students[index].name;
+      if (confirm(`Delete ${name}'s account? This cannot be undone.`)) {
+        if (currentUser === name) {
+          currentUser = null;
+          userSelect.value = "";
+        }
+        data.students.splice(index, 1);
+        saveData();
+        renderUsers();
+        renderTable();
+        updateSignedInDisplay();
+      }
+    }
+
+    function viewPassword(index) {
+      if (!teacherMode) return alert('Teacher mode required');
+      const student = data.students[index];
+      if (!student) return alert('Student not found');
+      const newPassword = prompt(`Password for ${student.name}:`, student.password);
+      if (newPassword !== null && newPassword.trim() !== '') {
+        student.password = newPassword.trim();
+        saveData();
+        alert(`Password updated for ${student.name}`);
+      }
+    }
+
+    document.getElementById("addStudent").onclick = () => {
+      if (!teacherMode) return;
+      const name = document.getElementById("newStudentName").value.trim();
+      const password = document.getElementById("newStudentPassword").value.trim();
+      if (!name || !password) return alert("Name and password required.");
+      if (data.students.some(s => s.name === name)) return alert("Name already exists.");
+      data.students.push({ name, balance: 0, password });
+      saveData();
+      renderUsers();
+      renderTable();
+      document.getElementById("newStudentName").value = "";
+      document.getElementById("newStudentPassword").value = "";
+    };
+
+    document.getElementById("resetData").onclick = () => {
+      if (!confirm("Reset all data?")) return;
+      localStorage.removeItem("bankData");
+      data = { students: [] };
+      renderUsers();
+      renderTable();
+      updateSignedInDisplay();
+    };
+
+    document.getElementById("loginTeacher").onclick = () => {
+      const pw = prompt("Enter teacher password:");
+      if (pw === TEACHER_PASSWORD) {
+        teacherMode = true;
+        currentUser = null;
+        teacherControls.style.display = "block";
+        document.getElementById("loginTeacher").style.display = "none";
+        document.getElementById("logoutTeacher").style.display = "inline";
+        updateSignedInDisplay();
+        renderTable();
+      } else {
+        alert("Wrong password.");
+      }
+    };
+
+    document.getElementById("logoutTeacher").onclick = () => {
+      teacherMode = false;
+      teacherControls.style.display = "none";
+      document.getElementById("loginTeacher").style.display = "inline";
+      document.getElementById("logoutTeacher").style.display = "none";
+      updateSignedInDisplay();
+      renderTable();
+    };
+
+    userSelect.onchange = () => {
+      const selectedName = userSelect.value;
+      if (!selectedName) { currentUser = null; updateSignedInDisplay(); renderTable(); return; }
+      const student = data.students.find(s => s.name === selectedName);
+      const pw = prompt(`Enter password for ${student.name}:`);
+      if (pw === student.password) {
+        currentUser = student.name;
+        teacherMode = false;
+        teacherControls.style.display = "none";
+        document.getElementById("loginTeacher").style.display = "inline";
+        document.getElementById("logoutTeacher").style.display = "none";
+        updateSignedInDisplay();
+        alert(`Signed in as ${student.name}`);
+        renderTable();
+      } else {
+        alert("Wrong password");
+        userSelect.value = "";
+        currentUser = null;
+        updateSignedInDisplay();
+        renderTable();
+      }
+    };
+
+    renderUsers();
+    renderTable();
+    updateSignedInDisplay();
+  </script>
+</body>
+</html>
