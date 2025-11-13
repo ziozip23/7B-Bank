@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>7B Bank — Modern</title>
+  <style>
+    :root{
+      --bg:#f3f6fb;
+      --card:#ffffff;
+      --muted:#7b8794;
+      --accent:#1f6feb;
+      --danger:#e05050;
+      --success:#2ea44f;
+      --glass: rgba(255,255,255,0.6);
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,#eef4ff 0%, var(--bg) 100%);
+      color:#102027;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:28px;
+    }
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1100px;margin:0 auto 18px}
+    h1{font-size:20px;margin:0}
+    .container{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:0 6px 18px rgba(16,32,47,0.08);padding:18px}
+    .login-card{max-width:420px;margin:0 auto;padding:20px;border-radius:16px}
+    .muted{color:var(--muted);font-size:13px}
+    label{display:block;font-weight:600;margin-bottom:6px;font-size:13px}
+    input[type="text"],input[type="password"],select{
+      width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff;font-size:14px;
+      outline:none;box-shadow:none
+    }
+    .btn{display:inline-block;padding:8px 12px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+    .btn.soft{background:transparent;color:var(--accent);border:1px solid rgba(31,111,235,0.12)}
+    .btn.warn{background:var(--danger)}
+    .top-row{display:flex;gap:10px;align-items:center}
+    .main{display:flex;flex-direction:column;gap:16px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:10px;text-align:left;border-bottom:1px solid #f1f5f9}
+    th{color:var(--muted);font-weight:600;font-size:13px}
+    .actions{display:flex;gap:8px;justify-content:flex-end}
+    .small{font-size:13px;padding:6px 8px;border-radius:8px}
+    .right-panel{display:flex;flex-direction:column;gap:12px}
+    .audit-log{height:420px;overflow:auto;padding:12px;background:#0f1724; color:#e6eef8;border-radius:10px;font-family:monospace;font-size:13px}
+    .info{background:linear-gradient(90deg,#fff 0,#fbfdff 100%);padding:12px;border-radius:10px;border:1px solid #eef6ff}
+    .flex-row{display:flex;gap:8px;align-items:center}
+    .hidden{display:none}
+    .top-actions{display:flex;gap:8px;align-items:center}
+    footer{max-width:1100px;margin:18px auto 0;text-align:center;color:var(--muted);font-size:13px}
+    @media (max-width:900px){.container{grid-template-columns:1fr;}.right-panel{order:-1}}
+  </style>
+</head>
+<body>
+  <header><h1>7B Bank — Dashboard</h1><div class="top-actions"><span class="muted">Sleek view • Local demo</span></div></header>
+
+  <div class="container">
+    <div class="card">
+      <!-- login area -->
+      <div id="loginSection" class="login-card">
+        <h2 style="margin:0 0 8px 0">Sign in</h2>
+        <p class="muted" style="margin:0 0 12px 0">Enter your student username + password. Teacher can sign in using the button below.</p>
+        <div style="margin-bottom:10px">
+          <label>Username</label>
+          <input id="loginUsername" type="text" autocomplete="off" />
+        </div>
+        <div style="margin-bottom:10px">
+          <label>Password</label>
+          <input id="loginPassword" type="password" autocomplete="new-password" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <button id="studentLoginBtn" class="btn">Sign in</button>
+          <button id="teacherLoginBtn" class="btn soft">Teacher Login</button>
+          <button id="showSampleLogin" class="btn soft">Show login info</button>
+        </div>
+        <div id="sampleLogin" class="info" style="margin-top:12px;display:none">
+          <strong>Sample login info</strong>
+          <div class="muted" style="margin-top:6px">Teacher password: <code style="background:#f1f5f9;padding:4px 8px;border-radius:6px">123</code></div>
+          <div class="muted" style="margin-top:6px">Create students from Teacher panel. Student passwords are set by teacher.</div>
+          <div class="muted" style="margin-top:6px"><strong>Note:</strong> Logging out will not save your username or password in the browser.</div>
+        </div>
+      </div>
+
+      <!-- student view / teacher controls area -->
+      <div id="appArea" class="main hidden">
+        <div class="top-row" style="justify-content:space-between;align-items:center">
+          <div style="display:flex;flex-direction:column">
+            <div style="font-weight:700" id="signedInAs">Signed in as: —</div>
+            <div class="muted" id="signedInRole">Role: —</div>
+          </div>
+          <div class="flex-row">
+            <button id="logoutBtn" class="btn soft">Logout</button>
+            <button id="backToLogin" class="btn soft hidden">Back</button>
+          </div>
+        </div>
+
+        <div id="teacherControlsPanel" class="card hidden" style="Padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div><strong>Teacher Controls</strong><div class="muted">Manage students & balances</div></div>
+            <div>
+              <button id="pushServerBtn" class="btn soft">Push to server (placeholder)</button>
+              <button id="clearAuditBtn" class="btn soft">Clear audit</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            <input id="newStudentName" type="text" placeholder="Student name" style="flex:1" />
+            <input id="newStudentPassword" type="text" placeholder="Set student password" style="width:180px" />
+            <button id="addStudent" class="btn">Create</button>
+          </div>
+          <div style="overflow:auto;max-height:200px;">
+            <table id="teacherTable">
+              <thead><tr><th>Student</th><th>Balance</th><th style="text-align:right">Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="studentPanel" class="card hidden" style="padding:14px">
+          <strong>Your Account</strong>
+          <div class="muted" style="margin-top:6px">Only your balance and actions are visible here.</div>
+          <div style="margin-top:12px">
+            <table id="studentTable"><thead><tr><th>Student</th><th>Balance</th><th style="text-align:right">Actions</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="card" style="padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Audit Log</strong><div class="muted">Visible in teacher mode. Persists in localStorage.</div></div>
+          <div class="muted" id="auditCount">0</div>
+        </div>
+        <div id="auditContainer" class="audit-log muted">No audit entries yet.</div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <button id="exportAudit" class="btn soft">Export JSON</button>
+          <button id="importAudit" class="btn soft">Import JSON</button>
+        </div>
+        <div style="margin-top:8px" class="muted">When you're ready to move to a real backend you can push the audit log (placeholder button above).</div>
+      </div>
+
+      <div class="card" style="padding:12px">
+        <strong>Notes</strong>
+        <p class="muted" style="margin:8px 0 0 0">Local demo: student / teacher data and the audit log are stored in localStorage. Logging out will not persist the signed-in user or their password — only data and audit remain.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>7B Bank • Demo • Local only</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const STORAGE_KEY = 'bankData_v2';
+  const AUDIT_KEY = 'bankAudit_v2';
+  const TEACHER_PASSWORD = '123';
+
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { students: [] };
+  let audit = JSON.parse(localStorage.getItem(AUDIT_KEY)) || [];
+  let currentUser = null;
+  let currentRole = null; // 'teacher' or 'student'
+
+  // elements
+  const loginSection = document.getElementById('loginSection');
+  const appArea = document.getElementById('appArea');
+  const teacherControlsPanel = document.getElementById('teacherControlsPanel');
+  const studentPanel = document.getElementById('studentPanel');
+  const signedInAs = document.getElementById('signedInAs');
+  const signedInRole = document.getElementById('signedInRole');
+  const studentTableBody = document.querySelector('#studentTable tbody');
+  const teacherTableBody = document.querySelector('#teacherTable tbody');
+  const auditContainer = document.getElementById('auditContainer');
+  const auditCount = document.getElementById('auditCount');
+
+  // UI helpers
+  function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+  function saveAudit(){ localStorage.setItem(AUDIT_KEY, JSON.stringify(audit)); updateAuditUI(); }
+  function pushAudit(entry){
+    audit.unshift(entry); // newest first
+    if(audit.length>1000) audit.pop();
+    saveAudit();
+  }
+  function timestamp(){ return new Date().toLocaleString(); }
+  function logAction(type, details){
+    const entry = { time: new Date().toISOString(), human: `[${timestamp()}] ${type} — ${details}` };
+    pushAudit(entry);
+  }
+
+  // renderers
+  function updateAuditUI(){
+    auditContainer.innerHTML = audit.length? audit.map(a=>`<div style="margin-bottom:8px"><div style="color:#9aaab8;font-size:12px">${a.human.split(']')[0]}]</div><div>${a.human.split(']')[1].trim()}</div></div>`).join('') : 'No audit entries yet.';
+    auditCount.textContent = audit.length;
+  }
+
+  function renderTeacherTable(){
+    teacherTableBody.innerHTML='';
+    data.students.forEach((s,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${s.name}</td><td>$${s.balance.toFixed(2)}</td><td style="text-align:right">
+        <button class="small" onclick="depositMoney(${i})">Deposit</button>
+        <button class="small" onclick="withdrawMoney(${i})">Withdraw</button>
+        <button class="small" onclick="editPassword(${i})">Pwd</button>
+        <button class="small" onclick="deleteStudent(${i})" style="background:transparent;color:var(--danger)">Delete</button>
+      </td>`;
+      teacherTableBody.appendChild(tr);
+    });
+  }
+
+  function renderStudentView(){
+    studentTableBody.innerHTML='';
+    const s = data.students.find(st => st.name===currentUser);
+    if(!s) return;
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${s.name}</td><td>$${s.balance.toFixed(2)}</td><td style="text-align:right">
+      <button class="small" onclick="transferMoney()">Transfer</button>
+    </td>`;
+    studentTableBody.appendChild(tr);
+  }
+
+  // expose functions for inline buttons
+  window.depositMoney = function(index){
+    if(currentRole!=='teacher') return alert('Teacher only');
+    const amt = parseFloat(prompt('Deposit amount:'));
+    if(isNaN(amt)||amt<=0) return;
+    data.students[index].balance += amt;
+    saveData();
+    renderTeacherTable();
+    logAction('Deposit', `${amt.toFixed(2)} -> ${data.students[index].name}`);
+  };
+
+  window.withdrawMoney = function(index){
+    if(currentRole!=='teacher') return alert('Teacher only');
+    const amt = parseFloat(prompt('Withdraw amount:'));
+    if(isNaN(amt)||amt<=0) return;
+    data.students[index].balance -= amt;
+    if(data.students[index].balance<0) data.students[index].balance = 0;
+    saveData();
+    renderTeacherTable();
+    logAction('Withdraw', `${amt.toFixed(2)} <- ${data.students[index].name}`);
+  };
+
+  window.editPassword = function(index){
+    if(currentRole!=='teacher') return alert('Teacher only');
+    const newPw = prompt('Set new password:', data.students[index].password||'');
+    if(newPw==null) return;
+    data.students[index].password = newPw;
+    saveData();
+    renderTeacherTable();
+    logAction('PasswordChange', `Password set for ${data.students[index].name}`);
+  };
+
+  window.deleteStudent = function(index){
+    if(currentRole!=='teacher') return alert('Teacher only');
+    const name = data.students[index].name;
+    if(!confirm(`Delete ${name}? This cannot be undone.`)) return;
+    data.students.splice(index,1);
+    saveData();
+    renderTeacherTable();
+    logAction('Delete', `Deleted account ${name}`);
+  };
+
+  window.transferMoney = function(){
+    if(currentRole!=='student') return alert('Student only');
+    const from = data.students.find(s=>s.name===currentUser);
+    if(!from) return alert('Account not found');
+    const pw = prompt('Enter your password to confirm:');
+    if(pw!==from.password) return alert('Incorrect password');
+    const recipient = prompt('Enter recipient username:');
+    if(!recipient) return;
+    const to = data.students.find(s=>s.name===recipient);
+    if(!to) return alert('Recipient not found');
+    if(to.name===from.name) return alert("Can't transfer to yourself");
+    const amt = parseFloat(prompt(`Amount to send to ${to.name}:`));
+    if(isNaN(amt)||amt<=0) return;
+    if(from.balance<amt) return alert('Insufficient funds');
+    from.balance -= amt;
+    to.balance += amt;
+    saveData();
+    renderStudentView();
+    logAction('Transfer', `${amt.toFixed(2)} from ${from.name} to ${to.name}`);
+    alert(`Transferred $${amt.toFixed(2)} to ${to.name}`);
+  };
+
+  // auth flows
+  document.getElementById('studentLoginBtn').addEventListener('click',()=>{
+    const name = document.getElementById('loginUsername').value.trim();
+    const pw = document.getElementById('loginPassword').value;
+    if(!name) return alert('Enter username');
+    const student = data.students.find(s=>s.name===name);
+    if(!student) return alert('No such user. Teacher can create students.');
+    if(student.password!==pw) return alert('Wrong password');
+    currentUser = student.name;
+    currentRole = 'student';
+    showApp();
+    renderStudentView();
+    signedInAs.textContent = currentUser;
+    signedInRole.textContent = 'Role: Student';
+  });
+
+  document.getElementById('teacherLoginBtn').addEventListener('click',()=>{
+    const pw = prompt('Enter teacher password:');
+    if(pw!==TEACHER_PASSWORD) return alert('Wrong password');
+    currentUser = 'Teacher';
+    currentRole = 'teacher';
+    showApp();
+    renderTeacherTable();
+    signedInAs.textContent = 'Teacher';
+    signedInRole.textContent = 'Role: Teacher';
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click',()=>{
+    // do NOT persist login info on logout; clear currentUser only
+    currentUser = null;
+    currentRole = null;
+    document.getElementById('loginUsername').value='';
+    document.getElementById('loginPassword').value='';
+    hideApp();
+  });
+
+  document.getElementById('showSampleLogin').addEventListener('click',()=>{
+    const el = document.getElementById('sampleLogin');
+    el.style.display = (el.style.display === 'none' || el.style.display==='')? 'block' : 'none';
+  });
+
+  document.getElementById('addStudent').addEventListener('click',()=>{
+    if(currentRole!=='teacher') return alert('Teacher only');
+    const name = document.getElementById('newStudentName').value.trim();
+    const pw = document.getElementById('newStudentPassword').value;
+    if(!name||!pw) return alert('Provide name and password');
+    if(data.students.some(s=>s.name===name)) return alert('Name exists');
+    data.students.push({name, balance:0, password:pw});
+    saveData();
+    renderTeacherTable();
+    document.getElementById('newStudentName').value='';
+    document.getElementById('newStudentPassword').value='';
+    logAction('Create', `Created account ${name}`);
+  });
+
+  document.getElementById('clearAuditBtn').addEventListener('click',()=>{
+    if(!confirm('Clear audit log? This will remove local entries.')) return;
+    audit = [];
+    saveAudit();
+  });
+
+  document.getElementById('exportAudit').addEventListener('click',()=>{
+    const blob = new Blob([JSON.stringify(audit,null,2)],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='audit.json'; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('importAudit').addEventListener('click',()=>{
+    const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+    inp.onchange = ()=>{
+      const f = inp.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const imported = JSON.parse(reader.result);
+          if(Array.isArray(imported)){
+            audit = imported.concat(audit);
+            saveAudit();
+            alert('Imported audit entries');
+          } else alert('Invalid format');
+        }catch(e){ alert('Error reading file'); }
+      };
+      reader.readAsText(f);
+    };
+    inp.click();
+  });
+
+  document.getElementById('pushServerBtn').addEventListener('click',()=>{
+    alert('Push to server placeholder. When ready, replace this with Firebase write logic.');
+  });
+
+  function showApp(){
+    loginSection.classList.add('hidden');
+    appArea.classList.remove('hidden');
+    document.getElementById('backToLogin').classList.remove('hidden');
+    if(currentRole==='teacher'){
+      teacherControlsPanel.classList.remove('hidden');
+      studentPanel.classList.add('hidden');
+      document.getElementById('pushServerBtn').style.display = 'inline-block';
+    } else {
+      teacherControlsPanel.classList.add('hidden');
+      studentPanel.classList.remove('hidden');
+    }
+    updateAuditUI();
+  }
+
+  function hideApp(){
+    loginSection.classList.remove('hidden');
+    appArea.classList.add('hidden');
+    teacherControlsPanel.classList.add('hidden');
+    studentPanel.classList.add('hidden');
+    updateAuditUI();
+  }
+
+  // initial render
+  updateAuditUI();
+  renderTeacherTable();
+
+  // ensure logout clears currentUser on reload by default (we do not store login)
+  window.addEventListener('beforeunload', ()=>{ currentUser=null; currentRole=null; });
+
+}); //DOMContentLoaded
+</script>
+</body>
+</html>
